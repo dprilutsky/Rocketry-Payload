@@ -1,0 +1,31 @@
+#include "SoftwareSerial.h"
+
+int led = 13;
+String message;
+SoftwareSerial XBee(0, 1);
+
+void setup() {
+  // put your setup code here, to run once:
+  XBee.begin(9600);
+  pinMode(led, OUTPUT);     
+
+}
+
+int numberPackets = 0;
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  //digitalWrite(led, HIGH);   // turn the LED on (HIGH is the voltage level)
+  //if (XBee.available() > 0) {
+    //message = XBee.read();
+    digitalWrite(led, HIGH);   // turn the LED on (HIGH is the voltage level)
+    
+    message = String("\nTestPacket Number: ").concat(String(numberPackets).concat(String(" || Time of packet send: ").concat(millis()))); // + numberPackets + " || Time of packet send: " + millis());
+    char charArray[64];
+    message.toCharArray(charArray, 64);
+    XBee.write(charArray);
+    numberPackets = numberPackets + 1;
+    delay(1000);
+    //digitalWrite(led, LOW);   // turn the LED on (HIGH is the voltage level)
+  //}
+}
