@@ -11,7 +11,7 @@
 #include <Adafruit_Sensor.h>  // not used in this demo but required!
 #include <Adafruit_Simple_AHRS.h>
 //#include <SD.h>
-#include "SoftwareSerial.h"
+//#include "SoftwareSerial.h"
 // Use I2C, ID #1000
 Adafruit_LSM9DS0 lsm = Adafruit_LSM9DS0(1000); 
 Adafruit_MPL3115A2 bar = Adafruit_MPL3115A2();
@@ -29,7 +29,7 @@ float data[24];
 //XBee
 int led = 13;
 
-SoftwareSerial XBee(0, 1);
+//SoftwareSerial XBee(0, 1);
 /*
  * Data Key:
  * 0: X acceleration (m/s^2)
@@ -95,7 +95,7 @@ void setup()
   //Setup the sensor gain and integration time.
   setupSensor();
   //XBee
-  XBee.begin(9600);
+  Serial1.begin(9600);//Serial1 is the XBee
   pinMode(led, OUTPUT);
 }
 //XBee
@@ -160,15 +160,20 @@ void loop()
   
   // put your main code here, to run repeatedly:
   //digitalWrite(led, HIGH);   // turn the LED on (HIGH is the voltage level)
-  //if (XBee.available() > 0) {
-    //message = XBee.read();
+  if (Serial1.available() > 0) {
+    String receivedstr = Serial1.readString();
+    char received[64];
+    receivedstr.toCharArray(received, 64);
+    Serial1.write(received); //sending to xbee
+    Serial1.write("\n");
     digitalWrite(led, HIGH);   // turn the LED on (HIGH is the voltage level)
-    //In message, we will put the string we are going to send (the same one that went to the SD card) - or can the XBee send an array?
-    //Is it possible to do XBee.write(Serial.read()) ?
-    //message = String("\nTestPacket Number: ").concat(String(numberPackets).concat(String(" || Time of packet send: ").concat(millis()))); // + numberPackets + " || Time of packet send: " + millis());
-    char charArray[128];
-    message.toCharArray(charArray, 128);
-    XBee.write(charArray);
+  }
+  //In message, we will put the string we are going to send (the same one that went to the SD card) - or can the XBee send an array?
+  //Is it possible to do XBee.write(Serial.read()) ?
+  //message = String("\nTestPacket Number: ").concat(String(numberPackets).concat(String(" || Time of packet send: ").concat(millis()))); // + numberPackets + " || Time of packet send: " + millis());
+  char charArray[128];
+  message.toCharArray(charArray, 128);
+  Serial1.write(charArray);
     
    
     //digitalWrite(led, LOW);   // turn the LED on (HIGH is the voltage level)
