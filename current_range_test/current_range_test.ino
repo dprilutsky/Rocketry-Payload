@@ -16,8 +16,16 @@ int numberPackets = 0;
 void loop() {
   // put your main code here, to run repeatedly:
   //digitalWrite(led, HIGH);   // turn the LED on (HIGH is the voltage level)
-  //if (XBee.available() > 0) {
-    //message = XBee.read();
+  if (XBee.available() > 0) {
+    message = XBee.read();
+    XBee.write("received message");
+    XBee.write(XBee.read());
+    XBee.write(XBee.read());
+    XBee.write(XBee.read());
+    XBee.write(XBee.read());
+    XBee.write(XBee.read());
+    XBee.write("\n");
+  }
     digitalWrite(led, HIGH);   // turn the LED on (HIGH is the voltage level)
     
     message = String("\nTestPacket Number: ").concat(String(numberPackets).concat(String(" || Time of packet send: ").concat(millis()))); // + numberPackets + " || Time of packet send: " + millis());
