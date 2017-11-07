@@ -26,6 +26,7 @@ float data[13];
 File myFile;
 //XBee
 int led = 13;
+int loops;
 
 String gpsData(TinyGPS &gps1);
 String printFloat(double f, int digits = 2);
@@ -80,6 +81,9 @@ void setupSensor()
 }
 void setup() 
 {
+  loops = 0;
+  Serial.setTimeout(50);
+  XBee.setTimeout(50);
 #ifndef ESP8266
   while (!Serial);     // will pause Zero, Leonardo, etc until serial console opens
 #endif
@@ -88,16 +92,16 @@ void setup()
   // Try to initialise and warn if we couldn't detect the chip
   if (!lsm.begin())
   {
-    Serial.println("Unable to initialize the accelerometer.");
+    //Serial.println("Unable to initialize the accelerometer.");
     while (1);
   }
   if (!bar.begin()) {
-    Serial.println("Unable to initialize the barometer.");
+    //Serial.println("Unable to initialize the barometer.");
     return;
   }
-  Serial.println("Found Sensors");
-  Serial.println("");
-  Serial.println("");
+  //Serial.println("Found Sensors");
+  //Serial.println("");
+  //Serial.println("");
   //Setup the sensor gain and integration time.
   setupSensor();
   //XBee
@@ -109,6 +113,7 @@ void setup()
 int numberPackets = 0;
 void loop() 
 {
+  loops++;
   //Serial.print(XBee.peek());
   sensors_vec_t orientation;
   sensors_event_t accel, mag, gyro, temp;
@@ -128,9 +133,11 @@ void loop()
     data[8] = orientation.heading;
   }
   data[9] = temp.temperature;
-  data[10] = bar.getPressure();
+ // data[10] = bar.getPressure();
+ if (loops % 10 == 0) {
   data[11] = bar.getAltitude();
-  data[12] = bar.getTemperature();
+ }
+  //data[12] = bar.getTemperature();
   
   /*float flat, flon, fix_age;
   unsigned long age;
@@ -149,25 +156,25 @@ void loop()
 
   message += (String)(millis()/1000) + "#&";
 
-  Serial.println(message);
+  Serial.print(message);
 
 
   
   //SD Card (filename.txt will be data file):
-  String sdmessage = "*#";
-  for (int i = 0; i < 12; i++) {
-    sdmessage += (String)data[i] + "#,#";
-  }
-  sdmessage += gpsData(gps);
-  sdmessage += (String)(millis()/1000) + "#&";
-  
+//  String sdmessage = "*#";
+//  for (int i = 0; i < 12; i++) {
+//    sdmessage += (String)data[i] + "#,#";
+//  }
+//  sdmessage += gpsData(gps);
+//  sdmessage += (String)(millis()/1000) + "#&";
+//  
   myFile = SD.open("filename.txt", FILE_WRITE);
 
   if (myFile) {
-    myFile.println(sdmessage);
+    myFile.println(message);
     myFile.close();
   } else {
-    Serial.println("SD card error");
+    //Serial.println("SD card error");
   }
 
 
@@ -197,7 +204,7 @@ void loop()
   }
   Serial.println();
   */ 
-  delay(1);
+  delay(250);
 }
 
 String gpsData(TinyGPS &gps1)
