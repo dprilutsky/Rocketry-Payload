@@ -103,13 +103,13 @@ void setup()
   //XBee
   XBee.begin(9600);
   pinMode(led, OUTPUT);
-  while (XBee.peek() == -1);
+  while (XBee.read() == -1);
 }
 //XBee
 int numberPackets = 0;
 void loop() 
 {
-  Serial.print(XBee.peek());
+  //Serial.print(XBee.peek());
   sensors_vec_t orientation;
   sensors_event_t accel, mag, gyro, temp;
   lsm.getEvent(&accel, &mag, &gyro, &temp);
@@ -143,11 +143,11 @@ void loop()
   data[19] = gps.crack_datetime(&hour);
   data[20] = gps.crack_datetime(&minute);
   data[21] = gps.crack_datetime(&second);*/
-  String message = "*#" + (String)data[0] + "#,#" + (String)data[1] + "#,#" + (String)data[2] + "#,#" + (String)data[6] + "#,#" + (String)data[7] + "#,#" + (String)data[8] + "#,#" + (String)data[8] + "#,#" + (String)data[11] + "#,#";
+  String message = "*#" + (String)data[0] + "#,#" + (String)data[1] + "#,#" + (String)data[2] + "#,#" + (String)data[6] + "#,#" + (String)data[7] + "#,#" + (String)data[8] + "#,#" + (String)data[11] + "#,#" ;
  
   message += gpsData(gps);
 
-  message += (String)millis() + "#&";
+  message += (String)(millis()/1000) + "#&";
 
   Serial.println(message);
 
@@ -159,7 +159,7 @@ void loop()
     sdmessage += (String)data[i] + "#,#";
   }
   sdmessage += gpsData(gps);
-  sdmessage += (String)millis() + "#&";
+  sdmessage += (String)(millis()/1000) + "#&";
   
   myFile = SD.open("filename.txt", FILE_WRITE);
 
