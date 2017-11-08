@@ -84,13 +84,12 @@ void setup()
   loops = 0;
    if (!SD.begin(BUILTIN_SDCARD)) {
       Serial.println("initialization failed!");
-      return;
     }
     Serial.println("initialization done.");
     myFile = SD.open("filename.txt", FILE_WRITE);
   
     if (myFile) {
-      myFile.println("Starting new transmission");
+      myFile.println("Starting new recording");
       myFile.close();
     } 
     Serial.setTimeout(50);
@@ -124,6 +123,22 @@ void setup()
 int numberPackets = 0;
 void loop() 
 {
+  //Serial.print(XBee.peek());
+  char testChar = XBee.read();
+ // Serial.println(testChar);
+  if (testChar == 'x'){
+    myFile = SD.open("filename.txt", FILE_WRITE);
+  
+    if (myFile) {
+      myFile.println("End Recording");
+      myFile.print(data[21]);
+      myFile.print(data[22]);
+      myFile.close();
+    } else {
+      Serial.println("SD card error");
+    }    
+    exit(1);
+  }
   loops++;
   //Serial.print(XBee.peek());
   sensors_vec_t orientation;
@@ -170,7 +185,7 @@ void loop()
 
   message += (String)(millis()/1000) + "#&";
 
-  Serial.print(message);
+  //Serial.print(message);
 
 
   
