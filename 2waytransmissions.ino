@@ -95,9 +95,9 @@ void setup()
     } 
     Serial.setTimeout(50);
     XBee.setTimeout(50);
-#ifndef ESP8266
-  while (!Serial);     // will pause Zero, Leonardo, etc until serial console opens
-#endif
+//#ifndef ESP8266
+//  while (!Serial);     // will pause Zero, Leonardo, etc until serial console opens
+//#endif
   Serial.begin(9600);
   
   // Try to initialise and warn if we couldn't detect the chip
@@ -118,7 +118,7 @@ void setup()
   //XBee
   XBee.begin(9600);
   pinMode(led, OUTPUT);
-  //while (XBee.read() == -1);
+  while (XBee.read() == -1);
 }
 //XBee
 int numberPackets = 0;
