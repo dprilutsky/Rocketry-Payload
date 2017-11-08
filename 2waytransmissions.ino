@@ -82,8 +82,19 @@ void setupSensor()
 void setup() 
 {
   loops = 0;
-  Serial.setTimeout(50);
-  XBee.setTimeout(50);
+   if (!SD.begin(BUILTIN_SDCARD)) {
+      Serial.println("initialization failed!");
+      return;
+    }
+    Serial.println("initialization done.");
+    myFile = SD.open("filename.txt", FILE_WRITE);
+  
+    if (myFile) {
+      myFile.println("Starting new transmission");
+      myFile.close();
+    } 
+    Serial.setTimeout(50);
+    XBee.setTimeout(50);
 #ifndef ESP8266
   while (!Serial);     // will pause Zero, Leonardo, etc until serial console opens
 #endif
@@ -107,7 +118,7 @@ void setup()
   //XBee
   XBee.begin(9600);
   pinMode(led, OUTPUT);
-  while (XBee.read() == -1);
+  //while (XBee.read() == -1);
 }
 //XBee
 int numberPackets = 0;
@@ -132,6 +143,9 @@ void loop()
     data[7] = orientation.pitch;
     data[8] = orientation.heading;
   }
+  data[0] = data[0] + 9.81*sin(data[7]*M_PI/180);
+  data[1] = data[1] - 9.81*cos(data[7]*M_PI/180)*sin(data[6]*M_PI/180);
+  data[2] = data[2] - 9.81*cos(data[7]*M_PI/180)*cos(data[6]*M_PI/180);
   data[9] = temp.temperature;
  // data[10] = bar.getPressure();
  if (loops % 10 == 0) {
@@ -174,7 +188,7 @@ void loop()
     myFile.println(message);
     myFile.close();
   } else {
-    //Serial.println("SD card error");
+    Serial.println("SD card error");
   }
 
 
