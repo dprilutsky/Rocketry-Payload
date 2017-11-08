@@ -126,7 +126,7 @@ void loop()
   //Serial.print(XBee.peek());
   char testChar = XBee.read();
  // Serial.println(testChar);
-  if (testChar == 'x'){
+  if (testChar == 'p'){
     myFile = SD.open("filename.txt", FILE_WRITE);
   
     if (myFile) {
