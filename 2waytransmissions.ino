@@ -92,6 +92,7 @@ void setup()
   
     if (myFile) {
       myFile.println("Starting new recording");
+      myFile.printf("Rocket Launch: %d", rocketNumber);
       myFile.close();
     } 
     Serial.setTimeout(50);
@@ -142,7 +143,6 @@ void loop()
   
     if (myFile) {
       myFile.println("End Recording");
-      myFile.printf("Rocket Launch: %d", rocketNumber);
       myFile.close();
     } else {
       Serial.println("SD card error");
