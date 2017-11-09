@@ -27,6 +27,7 @@ File myFile;
 //XBee
 int led = 13;
 int loops;
+int rocketNumber;
 
 String gpsData(TinyGPS &gps1);
 String printFloat(double f, int digits = 2);
@@ -81,6 +82,7 @@ void setupSensor()
 }
 void setup() 
 {
+
   loops = 0;
    if (!SD.begin(BUILTIN_SDCARD)) {
       Serial.println("initialization failed!");
@@ -98,6 +100,7 @@ void setup()
 //  while (!Serial);     // will pause Zero, Leonardo, etc until serial console opens
 //#endif
   Serial.begin(9600);
+  Serial1.begin(9600);
   
   // Try to initialise and warn if we couldn't detect the chip
   if (!lsm.begin())
@@ -117,12 +120,20 @@ void setup()
   //XBee
   XBee.begin(9600);
   pinMode(led, OUTPUT);
-  while (XBee.read() == -1);
+  digitalWrite(led, HIGH);   // turn the LED on (HIGH is the voltage level)
+  //while (XBee.peek() == -1);
+  rocketNumber = XBee.read();
 }
 //XBee
 int numberPackets = 0;
 void loop() 
 {
+  while (Serial1.available()) {
+  char c = Serial1.read();
+  if (gps.encode(c)) {
+    // process new gps info here
+    }
+    }
   //Serial.print(XBee.peek());
   char testChar = XBee.read();
  // Serial.println(testChar);
@@ -131,8 +142,7 @@ void loop()
   
     if (myFile) {
       myFile.println("End Recording");
-      myFile.print(data[21]);
-      myFile.print(data[22]);
+      myFile.printf("Rocket Launch: %d", rocketNumber);
       myFile.close();
     } else {
       Serial.println("SD card error");
@@ -179,13 +189,14 @@ void loop()
   data[19] = gps.crack_datetime(&hour);
   data[20] = gps.crack_datetime(&minute);
   data[21] = gps.crack_datetime(&second);*/
-  String message = "*#" + (String)data[0] + "#,#" + (String)data[1] + "#,#" + (String)data[2] + "#,#" + (String)data[6] + "#,#" + (String)data[7] + "#,#" + (String)data[8] + "#,#" + (String)data[11] + "#,#" ;
+  //String message = "*#" + (String)data[0] + "#,#" + (String)data[1] + "#,#" + (String)data[2] + "#,#" + (String)data[6] + "#,#" + (String)data[7] + "#,#" + (String)data[8] + "#,#" + (String)data[11] + "#,#" ;
+  String message = "*#" + (String)data[0] + "#,#" + (String)data[1] + "#,#" + (String)data[2] + "#,#" + (String)1 + "#,#" + (String)1 + "#,#" + (String)1 + "#,#" + (String)data[11] + "#,#" ;
  
   message += gpsData(gps);
 
-  message += (String)(millis()/1000) + "#&";
+  message += (String)(millis()/1000.0) + "#&";
 
-  //Serial.print(message);
+  Serial.print(message);
 
 
   
@@ -214,13 +225,12 @@ void loop()
   //digitalWrite(led, HIGH);   // turn the LED on (HIGH is the voltage level)
   //if (XBee.available() > 0) {
     //message = XBee.read();
-    digitalWrite(led, HIGH);   // turn the LED on (HIGH is the voltage level)
     //In message, we will put the string we are going to send (the same one that went to the SD card) - or can the XBee send an array?
     //Is it possible to do XBee.write(Serial.read()) ?
     //message = String("\nTestPacket Number: ").concat(String(numberPackets).concat(String(" || Time of packet send: ").concat(millis()))); // + numberPackets + " || Time of packet send: " + millis());
     char charArray[128];
     message.toCharArray(charArray, message.length() + 1);
-    XBee.write(charArray);
+    XBee.print(charArray);
     
    
     //digitalWrite(led, LOW);   // turn the LED on (HIGH is the voltage level)
@@ -236,7 +246,7 @@ void loop()
   delay(250);
 }
 
-String gpsData(TinyGPS &gps1)
+String gpsData(TinyGPS &gps)
 {
   String data = "";
   long lat, lon;
@@ -247,7 +257,8 @@ String gpsData(TinyGPS &gps1)
   unsigned short sentences, failed;
   gps.get_position(&lat, &lon, &age);
 
-  data += (String)(gps1.altitude()*100) + "#,#" + printFloat(gps1.f_speed_mps()) + "#,#" + (String)lat + "#,#" + (String)lon + "#,#";
+  data += (String)(gps.altitude()*100) + "#,#" + printFloat(gps.f_speed_mps()) + "#,#" + (String)lat + "#,#" + (String)lon + "#,#";
+  //data += (String)(1) + "#,#" + printFloat(1) + "#,#" + (String)1 + "#,#" + (String)1 + "#,#";
   
   return data;
 }
