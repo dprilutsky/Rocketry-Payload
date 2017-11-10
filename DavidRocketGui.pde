@@ -67,9 +67,14 @@ void setup(){
   deltatime = 10;
   velocityIntegrated = 0;
   deltatimeTransmission = 100;
+
 }
 
 void draw(){
+  
+  if(keyPressed == true){
+    myPort.write(key);
+  }
   
   //Draw the intitial items
   //QUESTION: why isn't this just done in setup? Why are we re-drawing this ever single time
@@ -84,14 +89,22 @@ void draw(){
   rect((displayHeight-displayWidth/9)/3*638/738+75, 25 + displayWidth/9 + (displayWidth - (displayHeight-displayWidth/9)/3*638/738)*73/1480, -50 + displayWidth - (displayHeight-displayWidth/9)/3*638/738, -50 + displayHeight -displayWidth/9 + (displayWidth - (displayHeight-displayWidth/9)/3*638/738)*73/1480); 
   
   //Read in one full line  
+  char nextChar = ' ';
   boolean lineFilled = false;                                 //This will turn true when we've reached the & character
   String inputLine = "";                                      //This will be populated with the input characters
+  //while (nextChar != '*') {
+  //   if (myPort.available() > 0) {
+  //     nextChar = (char) myPort.read();
+  //   }
+  // }
+  inputLine += nextChar;
   //Run until line is filled
   while (!lineFilled) {
+    print("");
     //Only read if there is something to read
     while (myPort.available() > 0) {
       //Get the next character and add it to our line. Check that line isn't over
-      char nextChar = (char) myPort.read();
+      nextChar = (char) myPort.read();
       inputLine = inputLine + nextChar;
       if (nextChar == '&') {
         lineFilled = true;
@@ -103,7 +116,7 @@ void draw(){
   //Print inputLine and truncate to remove start and end markers
   //I HAVE NOT MODIFIED THIS PORTION --- IT IS AS IT WAS
   println(inputLine);
-  parameters = inByteFinal.substring(inByteFinal.indexOf("*")+1,inByteFinal.indexOf("&"));
+  parameters = inputLine.substring(inputLine.indexOf("*")+1,inputLine.indexOf("&"));
   parametersList = matchAll(parameters,"#(.*?)#");
 
   ax = float(parametersList[0][1]);
@@ -257,4 +270,7 @@ void draw(){
   plot4.endDraw();
 
   delay(deltatime);
+  
+  //SENDS BYTES
+
 }
