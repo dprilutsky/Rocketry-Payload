@@ -83,8 +83,6 @@ void setup()
 {
 
 
-  Serial.setTimeout(50);
-  XBee.setTimeout(50);
   Serial.begin(9600);
   Serial1.begin(9600);
   
@@ -104,7 +102,6 @@ void setup()
   //Setup the sensor gain and integration time.
   setupSensor();
   //XBee
-  XBee.begin(9600);
   pinMode(led, OUTPUT);
   digitalWrite(led, HIGH);   // turn the LED on (HIGH is the voltage level)
   while (XBee.peek() == -1) {
@@ -208,7 +205,7 @@ void loop()
   message += (String)(millis()/1000.0) + "#&";
 
   // print message to serial on computer
-  //Serial.println(message);
+  Serial.println(message);
 
 
   // Write to SD card if we're recording
