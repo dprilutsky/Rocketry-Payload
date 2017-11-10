@@ -31,7 +31,6 @@ long barometerTime = 0; //time since last barometer transmission
 String gpsData(TinyGPS &gps1);
 String printFloat(double f, int digits = 2);
 
-//SoftwareSerial XBee(27, 26);
 /*
  * Data Key:
  * 0: X acceleration (m/s^2) *
@@ -105,8 +104,8 @@ void setup()
   XBee.begin(9600);
   pinMode(led, OUTPUT);
   digitalWrite(led, HIGH);   // turn the LED on (HIGH is the voltage level)
-  while (XBee.peek() == -1) {
-   Serial.println("waiting"); 
+  while (XBee.available() <= 0) {
+   //Serial.println("waiting"); 
   }
   
 //Wait for rocket number to be sent
@@ -118,14 +117,23 @@ void loop()
 {
   //start recording when char "r" is sent
   //delay(100);
+  unsigned long timeGPS = millis();
+  while (millis() - timeGPS < 5) {
+  if (Serial1.available()) {
+    char c = Serial1.read();
+    if (gps.encode(c)) {
+      break;
+      }
+    }
+  }
   
   char testChar = 'z';
   if (XBee.available() > 0) {
     testChar = (char) XBee.read();
-  }
-  if (testChar != 'z') {
     Serial.println(testChar);
+
   }
+
    if (!startRecording && testChar == 'r') {
     
    if (!SD.begin(BUILTIN_SDCARD)) {
@@ -143,12 +151,7 @@ void loop()
    }
 
    //GPS code 
-  while (Serial1.available()) {
-  char c = Serial1.read();
-  if (gps.encode(c)) {
-    // process new gps info here
-    }
-    }
+
 
   //end program if character 'p' is receivevd
   if (startRecording && testChar == 'p'){
@@ -243,7 +246,7 @@ String gpsData(TinyGPS &gps)
   unsigned short sentences, failed;
   gps.get_position(&lat, &lon, &age);
 
-  data += (String)(gps.altitude()/100.0) + "#,#" + (String)(gps.speed()*51.44) + "#,#" + (String)lat + "#,#" + (String)lon + "#,#";
+  data += (String)(gps.f_altitude()) + "#,#" + (String)(gps.f_speed_mps()) + "#,#" + (String)lat + "#,#" + (String)lon + "#,#";
 
   //data += (String)(1) + "#,#" + printFloat(1) + "#,#" + (String)1 + "#,#" + (String)1 + "#,#";
   
