@@ -1,7 +1,5 @@
 #include <Adafruit_Sensor_Set.h>
 #include <Adafruit_Simple_AHRS.h>
-#include <Madgwick.h>
-#include <Mahony.h>
 #include <Wire.h>
 #include <SPI.h>
 #include <TinyGPS.h> // GPS
@@ -9,7 +7,6 @@
 #include <Adafruit_MPL3115A2.h> //barometer
 #include <Adafruit_Sensor.h>  // not used in this demo but required!
 #include <Adafruit_Simple_AHRS.h>
-//#include <SoftwareSerial.h>
 #include <SD.h>
 #include <SD_t3.h>
 #define XBee Serial2
@@ -23,12 +20,14 @@ Adafruit_Simple_AHRS ahrs(&lsm.getAccel(), &lsm.getMag());
 //Data array
 float data[13];
 //SD Card
-File myFile;
+File myFile;  
 //XBee
 int led = 13;
-int loops;
-int rocketNumber;
-
+int rocketNumber; //which flight - sent via ground
+long transmissionTime = 0; //time in ms of latest transmission
+bool startRecording = false;
+float barOffset = 0.0;
+long barometerTime = 0; //time since last barometer transmission
 String gpsData(TinyGPS &gps1);
 String printFloat(double f, int digits = 2);
 
@@ -83,37 +82,23 @@ void setupSensor()
 void setup() 
 {
 
-  loops = 0;
-   if (!SD.begin(BUILTIN_SDCARD)) {
-      Serial.println("initialization failed!");
-    }
-    Serial.println("initialization done.");
-    myFile = SD.open("filename.txt", FILE_WRITE);
-  
-    if (myFile) {
-      myFile.println("Starting new recording");
-      myFile.printf("Rocket Launch: %d", rocketNumber);
-      myFile.close();
-    } 
-    Serial.setTimeout(50);
-    XBee.setTimeout(50);
-//#ifndef ESP8266
-//  while (!Serial);     // will pause Zero, Leonardo, etc until serial console opens
-//#endif
+
+  Serial.setTimeout(50);
+  XBee.setTimeout(50);
   Serial.begin(9600);
   Serial1.begin(9600);
   
   // Try to initialise and warn if we couldn't detect the chip
   if (!lsm.begin())
   {
-    //Serial.println("Unable to initialize the accelerometer.");
+    Serial.println("Unable to initialize the accelerometer.");
     while (1);
   }
   if (!bar.begin()) {
-    //Serial.println("Unable to initialize the barometer.");
+    Serial.println("Unable to initialize the barometer.");
     return;
   }
-  //Serial.println("Found Sensors");
+  Serial.println("Found Sensors");
   //Serial.println("");
   //Serial.println("");
   //Setup the sensor gain and integration time.
@@ -122,22 +107,40 @@ void setup()
   XBee.begin(9600);
   pinMode(led, OUTPUT);
   digitalWrite(led, HIGH);   // turn the LED on (HIGH is the voltage level)
-  //while (XBee.peek() == -1);
+  while (XBee.peek() == -1); //Wait for rocket number to be sent
   rocketNumber = XBee.read();
 }
-//XBee
 int numberPackets = 0;
+
 void loop() 
 {
+  //start recording when char "r" is sent
+  char testChar = XBee.read();
+   if (testChar == 'r') {
+    
+   if (!SD.begin(BUILTIN_SDCARD)) {
+      Serial.println("initialization failed!");
+    }
+    Serial.println("initialization done.");
+    myFile = SD.open("filename.txt", FILE_WRITE);
+  
+    if (myFile) {
+      myFile.println("Starting new recording");
+      myFile.printf("Rocket Launch: %d\n", rocketNumber);
+      myFile.close();
+    } 
+    startRecording = true;
+   }
+
+   //GPS code 
   while (Serial1.available()) {
   char c = Serial1.read();
   if (gps.encode(c)) {
     // process new gps info here
     }
     }
-  //Serial.print(XBee.peek());
-  char testChar = XBee.read();
- // Serial.println(testChar);
+
+  //end program if character 'p' is receivevd
   if (testChar == 'p'){
     myFile = SD.open("filename.txt", FILE_WRITE);
   
@@ -149,8 +152,8 @@ void loop()
     }    
     exit(1);
   }
-  loops++;
-  //Serial.print(XBee.peek());
+
+  //accelerometer code 
   sensors_vec_t orientation;
   sensors_event_t accel, mag, gyro, temp;
   lsm.getEvent(&accel, &mag, &gyro, &temp);
@@ -168,83 +171,56 @@ void loop()
     data[7] = orientation.pitch;
     data[8] = orientation.heading;
   }
+  //cancel out gravity
   data[0] = data[0] + 9.81*sin(data[7]*M_PI/180);
   data[1] = data[1] - 9.81*cos(data[7]*M_PI/180)*sin(data[6]*M_PI/180);
   data[2] = data[2] - 9.81*cos(data[7]*M_PI/180)*cos(data[6]*M_PI/180);
   data[9] = temp.temperature;
  // data[10] = bar.getPressure();
- if (loops % 10 == 0) {
+ 
+ //barometer code
+ if (millis() - barometerTime >= 1000.0) {
   data[11] = bar.getAltitude();
+  if (barOffset == 0.0) barOffset = -data[11];
+  data[11] += barOffset;
+  barometerTime = millis();
  }
   //data[12] = bar.getTemperature();
   
-  /*float flat, flon, fix_age;
-  unsigned long age;
-  int year;
-  byte month,day, hour,minute, second;
-  data[15] = (float)gps.f_get_position(&flat, &flon, &age);
-  data[16] = gps.crack_datetime(&year);
-  data[17] = gps.crack_datetime(&month);
-  data[18] = gps.crack_datetime(&day);
-  data[19] = gps.crack_datetime(&hour);
-  data[20] = gps.crack_datetime(&minute);
-  data[21] = gps.crack_datetime(&second);*/
-  //String message = "*#" + (String)data[0] + "#,#" + (String)data[1] + "#,#" + (String)data[2] + "#,#" + (String)data[6] + "#,#" + (String)data[7] + "#,#" + (String)data[8] + "#,#" + (String)data[11] + "#,#" ;
-  String message = "*#" + (String)data[0] + "#,#" + (String)data[1] + "#,#" + (String)data[2] + "#,#" + (String)1 + "#,#" + (String)1 + "#,#" + (String)1 + "#,#" + (String)data[11] + "#,#" ;
+  // Compile string for sending/recording
+  String message = "*#" + (String)data[0] + "#,#" + (String)data[1] + "#,#" + (String)data[2] + "#,#" + (String)data[6] + "#,#" + (String)data[7] + "#,#" + (String)data[8] + "#,#" + (String)data[11] + "#,#" ;
+  //String message = "*#" + (String)data[0] + "#,#" + (String)data[1] + "#,#" + (String)data[2] + "#,#" + (String)1 + "#,#" + (String)1 + "#,#" + (String)1 + "#,#" + (String)data[11] + "#,#" ;
  
   message += gpsData(gps);
 
   message += (String)(millis()/1000.0) + "#&";
 
-  Serial.print(message);
+  // print message to serial on computer
+  Serial.println(message);
 
 
+  // Write to SD card if we're recording
+  if (startRecording) {
+    myFile = SD.open("filename.txt", FILE_WRITE);
   
-  //SD Card (filename.txt will be data file):
-//  String sdmessage = "*#";
-//  for (int i = 0; i < 12; i++) {
-//    sdmessage += (String)data[i] + "#,#";
-//  }
-//  sdmessage += gpsData(gps);
-//  sdmessage += (String)(millis()/1000) + "#&";
-//  
-  myFile = SD.open("filename.txt", FILE_WRITE);
-
-  if (myFile) {
-    myFile.println(message);
-    myFile.close();
-  } else {
-    Serial.println("SD card error");
+    if (myFile) {
+      myFile.println(message);
+      myFile.close();
+    } else {
+      Serial.println("SD card error");
+    }
   }
 
-
-  
-  //XBee
-  
-  // put your main code here, to run repeatedly:
-  //digitalWrite(led, HIGH);   // turn the LED on (HIGH is the voltage level)
-  //if (XBee.available() > 0) {
-    //message = XBee.read();
-    //In message, we will put the string we are going to send (the same one that went to the SD card) - or can the XBee send an array?
-    //Is it possible to do XBee.write(Serial.read()) ?
-    //message = String("\nTestPacket Number: ").concat(String(numberPackets).concat(String(" || Time of packet send: ").concat(millis()))); // + numberPackets + " || Time of packet send: " + millis());
+    // XBee code
     char charArray[128];
     message.toCharArray(charArray, message.length() + 1);
-    XBee.print(charArray);
+    //Serial.println(millis() - transmissionTime);
+    if (millis() - transmissionTime >= 100) {
+      XBee.print(charArray);
+      transmissionTime = millis();
+    }
     
-   
-    //digitalWrite(led, LOW);   // turn the LED on (HIGH is the voltage level)
-  //}
-  /*
-  for(int i = 0; i < 13; i++)
-  {
-    Serial.print(data[i]);
-    Serial.print(" ");
-  }
-  Serial.println();
-  */ 
-  delay(250);
-}
+ }
 
 String gpsData(TinyGPS &gps)
 {
@@ -257,7 +233,8 @@ String gpsData(TinyGPS &gps)
   unsigned short sentences, failed;
   gps.get_position(&lat, &lon, &age);
 
-  data += (String)(gps.altitude()*100) + "#,#" + printFloat(gps.f_speed_mps()) + "#,#" + (String)lat + "#,#" + (String)lon + "#,#";
+  data += (String)(gps.altitude()/100.0) + "#,#" + (String)(gps.speed()*51.44) + "#,#" + (String)lat + "#,#" + (String)lon + "#,#";
+
   //data += (String)(1) + "#,#" + printFloat(1) + "#,#" + (String)1 + "#,#" + (String)1 + "#,#";
   
   return data;
