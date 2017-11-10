@@ -96,7 +96,7 @@ void setup()
   }
   if (!bar.begin()) {
     Serial.println("Unable to initialize the barometer.");
-    return;
+    //return;
   }
   Serial.println("Found Sensors");
   //Serial.println("");
@@ -107,7 +107,8 @@ void setup()
   XBee.begin(9600);
   pinMode(led, OUTPUT);
   digitalWrite(led, HIGH);   // turn the LED on (HIGH is the voltage level)
-  while (XBee.peek() == -1); //Wait for rocket number to be sent
+  while (XBee.peek() == -1) ;
+//Wait for rocket number to be sent
   rocketNumber = XBee.read();
 }
 int numberPackets = 0;
@@ -115,8 +116,13 @@ int numberPackets = 0;
 void loop() 
 {
   //start recording when char "r" is sent
-  char testChar = XBee.read();
-   if (testChar == 'r') {
+  //delay(100);
+
+  char testChar = (char) XBee.read();
+  if (testChar == 'r' || testChar == 'p') {
+    Serial.println(testChar);
+  }
+   if (!startRecording && testChar == 'r') {
     
    if (!SD.begin(BUILTIN_SDCARD)) {
       Serial.println("initialization failed!");
@@ -126,7 +132,7 @@ void loop()
   
     if (myFile) {
       myFile.println("Starting new recording");
-      myFile.printf("Rocket Launch: %d\n", rocketNumber);
+      myFile.printf("Rocket Launch: %d\n\n", rocketNumber);
       myFile.close();
     } 
     startRecording = true;
@@ -141,7 +147,7 @@ void loop()
     }
 
   //end program if character 'p' is receivevd
-  if (testChar == 'p'){
+  if (startRecording && testChar == 'p'){
     myFile = SD.open("filename.txt", FILE_WRITE);
   
     if (myFile) {
