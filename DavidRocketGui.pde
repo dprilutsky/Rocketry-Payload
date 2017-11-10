@@ -53,6 +53,9 @@ String inByteFinal;
 String parameters;
 String[][] parametersList;
 
+boolean transmissionStarted = false;
+String launchNum = "0123456789";
+
 void setup(){
   size(displayWidth,displayHeight);
   imgTitle = loadImage("Rocket Logo.jpg");
@@ -69,12 +72,13 @@ void setup(){
   deltatimeTransmission = 100;
 
 }
-
+    
 void draw(){
-  
-  if(keyPressed == true){
-    myPort.write(key);
-  }
+
+
+  println("key is pressed " + key);
+  myPort.write(key);
+  if (launchNum.indexOf(key) != -1) transmissionStarted = true;
   
   //Draw the intitial items
   //QUESTION: why isn't this just done in setup? Why are we re-drawing this ever single time
@@ -88,21 +92,24 @@ void draw(){
   stroke(255);
   rect((displayHeight-displayWidth/9)/3*638/738+75, 25 + displayWidth/9 + (displayWidth - (displayHeight-displayWidth/9)/3*638/738)*73/1480, -50 + displayWidth - (displayHeight-displayWidth/9)/3*638/738, -50 + displayHeight -displayWidth/9 + (displayWidth - (displayHeight-displayWidth/9)/3*638/738)*73/1480); 
   
+  if (transmissionStarted) {
   //Read in one full line  
   char nextChar = ' ';
   boolean lineFilled = false;                                 //This will turn true when we've reached the & character
-  String inputLine = "";                                      //This will be populated with the input characters
-  //while (nextChar != '*') {
-  //   if (myPort.available() > 0) {
-  //     nextChar = (char) myPort.read();
-  //   }
-  // }
+  String inputLine = "";  //This will be populated with the input characters
+  while (nextChar != '*') {
+    print(""); // this needs to be here!
+     if (myPort.available() > 0) {
+       nextChar = (char) myPort.read();
+     }
+   }
+
   inputLine += nextChar;
   //Run until line is filled
   while (!lineFilled) {
     print("");
     //Only read if there is something to read
-    while (myPort.available() > 0) {
+    while (myPort.available() > 0) {    
       //Get the next character and add it to our line. Check that line isn't over
       nextChar = (char) myPort.read();
       inputLine = inputLine + nextChar;
@@ -112,7 +119,7 @@ void draw(){
       }
     }
   }
-  
+
   //Print inputLine and truncate to remove start and end markers
   //I HAVE NOT MODIFIED THIS PORTION --- IT IS AS IT WAS
   println(inputLine);
@@ -131,7 +138,7 @@ void draw(){
   latitude = float(parametersList[9][1]);
   longitude = float(parametersList[10][1]);
   time = float(parametersList[11][1]);
-  
+
   //Integrate acceleration to get velocity. I HAVE CHANGED THIS TO BE CORRECT
   vx = vx + ax * deltatime/1000;
   vy = vy + ay * deltatime/1000;
@@ -268,9 +275,8 @@ void draw(){
   plot3.drawLines();
   plot4.drawLines();
   plot4.endDraw();
-
+  }
   delay(deltatime);
   
   //SENDS BYTES
-
 }
