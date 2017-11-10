@@ -102,6 +102,7 @@ void setup()
   //Setup the sensor gain and integration time.
   setupSensor();
   //XBee
+  XBee.begin(9600);
   pinMode(led, OUTPUT);
   digitalWrite(led, HIGH);   // turn the LED on (HIGH is the voltage level)
   while (XBee.peek() == -1) {
