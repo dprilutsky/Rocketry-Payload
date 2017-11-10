@@ -92,7 +92,7 @@ void setup()
   if (!lsm.begin())
   {
     Serial.println("Unable to initialize the accelerometer.");
-    while (1);
+    //while (1);
   }
   if (!bar.begin()) {
     Serial.println("Unable to initialize the barometer.");
@@ -107,7 +107,10 @@ void setup()
   XBee.begin(9600);
   pinMode(led, OUTPUT);
   digitalWrite(led, HIGH);   // turn the LED on (HIGH is the voltage level)
-  while (XBee.peek() == -1) ;
+  while (XBee.peek() == -1) {
+   Serial.println("waiting"); 
+  }
+  
 //Wait for rocket number to be sent
   rocketNumber = XBee.read();
 }
@@ -117,9 +120,12 @@ void loop()
 {
   //start recording when char "r" is sent
   //delay(100);
-
-  char testChar = (char) XBee.read();
-  if (testChar == 'r' || testChar == 'p') {
+  
+  char testChar = 'z';
+  if (XBee.available() > 0) {
+    testChar = (char) XBee.read();
+  }
+  if (testChar != 'z') {
     Serial.println(testChar);
   }
    if (!startRecording && testChar == 'r') {
@@ -202,7 +208,7 @@ void loop()
   message += (String)(millis()/1000.0) + "#&";
 
   // print message to serial on computer
-  Serial.println(message);
+  //Serial.println(message);
 
 
   // Write to SD card if we're recording
