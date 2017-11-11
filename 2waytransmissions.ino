@@ -32,6 +32,7 @@ long barometerTime = 0; //time since last barometer transmission
 String gpsData(TinyGPS &gps1);
 String printFloat(double f, int digits = 2);
 bool startTransmitting = true;
+float xOffset = 0.0;
 
 /*
  * Data Key:
@@ -181,6 +182,7 @@ void loop()
     data[8] = orientation.heading;
   }
   //cancel out gravity
+  if (xOffset = 0.0) xOffset = -1;
   data[0] = data[0] + 9.81*sin(data[7]*M_PI/180);
   data[1] = data[1] - 9.81*cos(data[7]*M_PI/180)*sin(data[6]*M_PI/180);
   data[2] = data[2] - 9.81*cos(data[7]*M_PI/180)*cos(data[6]*M_PI/180);
@@ -242,7 +244,7 @@ String gpsData(TinyGPS &gps)
   unsigned short sentences, failed;
   gps.get_position(&lat, &lon, &age);
 
-  data += (String)(gps.f_altitude()) + "#,#" + (String)(gps.f_speed_mps()) + "#,#" + (String)lat + "#,#" + (String)lon + "#,#";
+  data += (String)(gps.f_altitude()) + "#,#" + (String)(gps.f_speed_mps()) + "#,#" + (String)(lat/10000000.0) + "#,#" + (String)(lon/10000000.0) + "#,#";
 
   //data += (String)(1) + "#,#" + printFloat(1) + "#,#" + (String)1 + "#,#" + (String)1 + "#,#";
   
