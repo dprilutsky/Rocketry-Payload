@@ -55,7 +55,7 @@ String[][] parametersList;
 
 boolean transmissionStarted = false;
 String launchNum = "0123456789";
-
+PrintWriter output;
 void setup(){
   size(displayWidth,displayHeight);
   imgTitle = loadImage("Rocket Logo.jpg");
@@ -63,14 +63,14 @@ void setup(){
   imgVel = loadImage("Velocity Gauge.jpg");
   imgAcc = loadImage("Acceleration Gauge.jpg");
   imgMapRibbon = loadImage("Rocket Map.jpg");
-  myPort = new Serial(this, Serial.list()[0], 9600);
+  myPort = new Serial(this, Serial.list()[2], 9600);
   inByteNew = "";
   f = createFont("Anita semi-square", 50, true);
   inByteFirst = myPort.readString();
   deltatime = 10;
   velocityIntegrated = 0;
   deltatimeTransmission = .15;
-
+  output = createWriter("LaunchXData.txt");
 }
     
 void draw(){
@@ -126,7 +126,7 @@ void draw(){
   println(inputLine);
   parameters = inputLine.substring(inputLine.indexOf("*")+1,inputLine.indexOf("&"));
   parametersList = matchAll(parameters,"#(.*?)#");
-  
+  output.println(inputLine);
   if(parametersList.length != 12){
     draw();
   }
@@ -301,5 +301,10 @@ void draw(){
   }
   delay(deltatime);
   
+  if(keyPressed == true && key == 'w'){
+    output.flush(); // Writes the remaining data to the file
+    output.close(); // Finishes the file
+    exit(); // Stops the program
+  }
   //SENDS BYTES
 }
