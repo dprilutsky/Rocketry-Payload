@@ -11,6 +11,28 @@
 #include <SD_t3.h>
 #define XBee Serial2
 
+const int c = 261;
+const int d = 294;
+const int e = 329;
+const int f = 349;
+const int g = 391;
+const int gS = 415;
+const int a = 440;
+const int aS = 455;
+const int b = 466;
+const int cH = 523;
+const int cSH = 554;
+const int dH = 587;
+const int dSH = 622;
+const int eH = 659;
+const int fH = 698;
+const int fSH = 740;
+const int gH = 784;
+const int gSH = 830;
+const int aH = 880;
+ 
+const int buzzerPin = 6;
+
 // Use I2C, ID #1000
 Adafruit_LSM9DS0 lsm = Adafruit_LSM9DS0(1000); 
 Adafruit_MPL3115A2 bar = Adafruit_MPL3115A2();
@@ -24,6 +46,7 @@ File myFile;
 char fileName[50];
 //XBee
 int led = 13;
+long noteDuration = 0;
 char rocketNumber; //which flight - sent via ground
 long transmissionTime = 0; //time in ms of latest transmission
 bool startRecording = false;
@@ -33,6 +56,9 @@ String gpsData(TinyGPS &gps1);
 String printFloat(double f, int digits = 2);
 bool startTransmitting = true;
 float xOffset = 0.0;
+bool startBuzzer = false;
+
+void buzzerSetup();
 
 /*
  * Data Key:
@@ -87,18 +113,21 @@ void setup()
 
   Serial.begin(9600);
   Serial1.begin(9600);
-  
+  //march();
   // Try to initialise and warn if we couldn't detect the chip
   if (!lsm.begin())
   {
     Serial.println("Unable to initialize the accelerometer.");
+    march();
     //while (1);
   }
   if (!bar.begin()) {
     Serial.println("Unable to initialize the barometer.");
+    march();
     //return;
   }
   Serial.println("Found Sensors");
+  
   //Serial.println("");
   //Serial.println("");
   //Setup the sensor gain and integration time.
@@ -106,7 +135,38 @@ void setup()
   //XBee
   XBee.begin(9600);
   pinMode(led, OUTPUT);
+
+//high pitch
+  beep(3671, 150);
+  beep(3671, 300);
+  beep(3087, 300);
+  beep(3671, 150);
+  beep(3671, 300);
+  beep(3087, 300);
+  beep(3671, 150);
+  beep(4365, 300);
+  beep(4120, 300);
+  beep(4365, 70);
+  beep(4120, 70);
+  beep(3671, 150);
+  beep(3087, 500);
+
+//low pitch
+//  beep(367, 150);
+//  beep(367, 300);
+//  beep(308, 300);
+//  beep(367, 150);
+//  beep(367, 300);
+//  beep(308, 300);
+//  beep(367, 150);
+//  beep(436, 300);
+//  beep(412, 300);
+//  beep(436, 70);
+//  beep(412, 70);
+//  beep(367, 150);
+//  beep(308, 500);
   digitalWrite(led, HIGH);   // turn the LED on (HIGH is the voltage level)
+
   while (XBee.available() <= 0) {
    //Serial.println("waiting"); 
   }
@@ -115,6 +175,9 @@ void setup()
   rocketNumber = (char) XBee.read();
   String stringFile = "launch" + (String) rocketNumber + ".txt";
   stringFile.toCharArray(fileName, stringFile.length()+1);
+  tone(6, 262, 1000);
+  noteDuration = millis();
+
 }
 int numberPackets = 0;
 
@@ -134,9 +197,22 @@ void loop()
   
   char testChar = 'z';
   if (XBee.available() > 0) {
-    testChar = (char) XBee.read();
-    Serial.println(testChar);
+    testChar = (char) Serial.read();
+    XBee.println(testChar);
 
+  }
+
+  if (millis() - noteDuration >= 1000);
+  noTone(buzzerPin);
+
+  if (startBuzzer) {
+    tone(6,5000,1000000000);
+    startBuzzer = false;
+  }
+
+  if (testChar == 'b') {
+    if (startBuzzer == true) startBuzzer = false;
+    else if (startBuzzer == false) startBuzzer = true;    
   }
 
    if (!startRecording && testChar == 'r') {
@@ -144,6 +220,10 @@ void loop()
    if (!SD.begin(BUILTIN_SDCARD)) {
       Serial.println("initialization failed!");
     }
+    tone(6, 5000, 1000);
+    noteDuration = millis();
+ 
+  //Stop tone on buzzerPin
     Serial.println("initialization done.");
     startRecording = true;
    }
@@ -152,14 +232,18 @@ void loop()
     if (startTransmitting == true) startTransmitting = false;
     else if (startTransmitting == false) startTransmitting = true;
     Serial.println(startTransmitting);
+    tone(6, 500, 1000);
+    noteDuration = millis();
    }
 
    //GPS code 
 
 
-  //end program if character 'p' is receivevd
+  //pause recording
   if (startRecording && testChar == 'p'){
     startRecording = false;
+    tone(6, 500, 1000);
+    noteDuration = millis();
     //exit(1);
   }
 
@@ -251,6 +335,21 @@ String gpsData(TinyGPS &gps)
   return data;
 }
 
+void beep(int note, int duration)
+{
+  //Play tone on buzzerPin
+  tone(buzzerPin, note, duration);
+ 
+  
+    delay(duration);
+ 
+  //Stop tone on buzzerPin
+  noTone(buzzerPin);
+ 
+  delay(50);
+ 
+}
+
 String printFloat(double number, int digits)
 {
   String toReturn = "";
@@ -282,3 +381,96 @@ String printFloat(double number, int digits)
 
   return toReturn;
 }
+
+void firstSection()
+{
+  beep(a, 500);
+  beep(a, 500);    
+  beep(a, 500);
+  beep(f, 350);
+  beep(cH, 150);  
+  beep(a, 500);
+  beep(f, 350);
+  beep(cH, 150);
+  beep(a, 650);
+ 
+  delay(500);
+ 
+  beep(eH, 500);
+  beep(eH, 500);
+  beep(eH, 500);  
+  beep(fH, 350);
+  beep(cH, 150);
+  beep(gS, 500);
+  beep(f, 350);
+  beep(cH, 150);
+  beep(a, 650);
+ 
+  delay(500);
+}
+ 
+void secondSection()
+{
+  beep(aH, 500);
+  beep(a, 300);
+  beep(a, 150);
+  beep(aH, 500);
+  beep(gSH, 325);
+  beep(gH, 175);
+  beep(fSH, 125);
+  beep(fH, 125);    
+  beep(fSH, 250);
+ 
+  delay(325);
+ 
+  beep(aS, 250);
+  beep(dSH, 500);
+  beep(dH, 325);  
+  beep(cSH, 175);  
+  beep(cH, 125);  
+  beep(b, 125);  
+  beep(cH, 250);  
+ 
+  delay(350);
+}
+
+void march()
+{
+ 
+  //Play first section
+  firstSection();
+ 
+  //Play second section
+  secondSection();
+ 
+  //Variant 1
+  beep(f, 250);  
+  beep(gS, 500);  
+  beep(f, 350);  
+  beep(a, 125);
+  beep(cH, 500);
+  beep(a, 375);  
+  beep(cH, 125);
+  beep(eH, 650);
+ 
+  delay(500);
+ 
+  //Repeat second section
+  secondSection();
+ 
+  //Variant 2
+  beep(f, 250);  
+  beep(gS, 500);  
+  beep(f, 375);  
+  beep(cH, 125);
+  beep(a, 500);  
+  beep(f, 375);  
+  beep(cH, 125);
+  beep(a, 650);  
+ 
+  delay(650);
+}
+
+
+
+
