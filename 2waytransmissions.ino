@@ -31,6 +31,7 @@ float barOffset = 0.0;
 long barometerTime = 0; //time since last barometer transmission
 String gpsData(TinyGPS &gps1);
 String printFloat(double f, int digits = 2);
+bool startTransmitting = true;
 
 /*
  * Data Key:
@@ -146,6 +147,12 @@ void loop()
     startRecording = true;
    }
 
+   if (testChar == 's') {
+    if (startTransmitting == true) startTransmitting = false;
+    else if (startTransmitting == false) startTransmitting = true;
+    Serial.println(startTransmitting);
+   }
+
    //GPS code 
 
 
@@ -198,7 +205,7 @@ void loop()
   message += (String)(millis()/1000.0) + "#&";
 
   // print message to serial on computer
-  Serial.println(message);
+  //Serial.println(message);
 
 
   // Write to SD card if we're recording
@@ -212,12 +219,12 @@ void loop()
       Serial.println("SD card error");
     }
   }
-
+    
     // XBee code
     char charArray[128];
     message.toCharArray(charArray, message.length() + 1);
     //Serial.println(millis() - transmissionTime);
-    if (millis() - transmissionTime >= 150) {
+    if (startTransmitting && (millis() - transmissionTime >= 150)) {
       XBee.print(charArray);
       transmissionTime = millis();
     }
