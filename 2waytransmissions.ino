@@ -175,7 +175,7 @@ void setup()
   rocketNumber = (char) XBee.read();
   String stringFile = "launch" + (String) rocketNumber + ".txt";
   stringFile.toCharArray(fileName, stringFile.length()+1);
-  tone(6, 262, 1000);
+  tone(6, 1109, 1000);
   noteDuration = millis();
 
 }
@@ -202,8 +202,9 @@ void loop()
 
   }
 
-  if (millis() - noteDuration >= 1000);
+  if (millis() - noteDuration >= 1000){
   noTone(buzzerPin);
+  }
 
   if (startBuzzer) {
     tone(6,5000,1000000000);
