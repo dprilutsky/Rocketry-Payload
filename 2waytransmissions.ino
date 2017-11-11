@@ -21,9 +21,10 @@ Adafruit_Simple_AHRS ahrs(&lsm.getAccel(), &lsm.getMag());
 float data[13];
 //SD Card
 File myFile;  
+char fileName[50];
 //XBee
 int led = 13;
-int rocketNumber; //which flight - sent via ground
+char rocketNumber; //which flight - sent via ground
 long transmissionTime = 0; //time in ms of latest transmission
 bool startRecording = false;
 float barOffset = 0.0;
@@ -109,7 +110,9 @@ void setup()
   }
   
 //Wait for rocket number to be sent
-  rocketNumber = XBee.read();
+  rocketNumber = (char) XBee.read();
+  String stringFile = "launch" + (String) rocketNumber + ".txt";
+  stringFile.toCharArray(fileName, stringFile.length()+1);
 }
 int numberPackets = 0;
 
@@ -140,13 +143,6 @@ void loop()
       Serial.println("initialization failed!");
     }
     Serial.println("initialization done.");
-    myFile = SD.open("filename.txt", FILE_WRITE);
-  
-    if (myFile) {
-      myFile.println("Starting new recording");
-      myFile.printf("Rocket Launch: %d\n\n", rocketNumber);
-      myFile.close();
-    } 
     startRecording = true;
    }
 
@@ -155,15 +151,8 @@ void loop()
 
   //end program if character 'p' is receivevd
   if (startRecording && testChar == 'p'){
-    myFile = SD.open("filename.txt", FILE_WRITE);
-  
-    if (myFile) {
-      myFile.println("End Recording");
-      myFile.close();
-    } else {
-      Serial.println("SD card error");
-    }    
-    exit(1);
+    startRecording = false;
+    //exit(1);
   }
 
   //accelerometer code 
@@ -214,7 +203,7 @@ void loop()
 
   // Write to SD card if we're recording
   if (startRecording) {
-    myFile = SD.open("filename.txt", FILE_WRITE);
+    myFile = SD.open(fileName, FILE_WRITE);
   
     if (myFile) {
       myFile.println(message);
@@ -228,7 +217,7 @@ void loop()
     char charArray[128];
     message.toCharArray(charArray, message.length() + 1);
     //Serial.println(millis() - transmissionTime);
-    if (millis() - transmissionTime >= 100) {
+    if (millis() - transmissionTime >= 150) {
       XBee.print(charArray);
       transmissionTime = millis();
     }
