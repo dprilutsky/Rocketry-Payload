@@ -8,7 +8,7 @@
 #include <Adafruit_Sensor.h>  // not used in this demo but required!
 #include <Adafruit_Simple_AHRS.h>
 #include <SD.h>
-#include <SD_t3.h>
+//#include <SD_t3.h>
 #define XBee Serial2
 
 const int c = 261;
@@ -209,6 +209,11 @@ void loop()
   if (startBuzzer) {
     tone(6,5000,1000000000);
     startBuzzer = false;
+  }
+
+  // if teensey receives code "a," reboot.
+  if(testChar == 'a') {
+    _reboot_Teensyduino_();
   }
 
   if (testChar == 'b') {
