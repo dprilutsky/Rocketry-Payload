@@ -8,8 +8,12 @@
 #include <Adafruit_Sensor.h>  // not used in this demo but required!
 #include <Adafruit_Simple_AHRS.h>
 #include <SD.h>
-#include <SD_t3.h>
+//#include <SD_t3.h>
 #define XBee Serial2
+
+#define RESTART_ADDR       0xE000ED0C
+#define READ_RESTART()     (*(volatile uint32_t *)RESTART_ADDR)
+#define WRITE_RESTART(val) ((*(volatile uint32_t *)RESTART_ADDR) = (val))
 
 const int c = 261;
 const int d = 294;
@@ -111,25 +115,25 @@ void setup()
 {
 
 
-  Serial.begin(9600);
+  XBee.begin(9600);
   Serial1.begin(9600);
   //march();
   // Try to initialise and warn if we couldn't detect the chip
   if (!lsm.begin())
   {
-    Serial.println("Unable to initialize the accelerometer.");
+    XBee.println("Unable to initialize the accelerometer.");
     march();
     //while (1);
   }
   if (!bar.begin()) {
-    Serial.println("Unable to initialize the barometer.");
+    XBee.println("Unable to initialize the barometer.");
     march();
     //return;
   }
-  Serial.println("Found Sensors");
+  XBee.println("Found Sensors");
   
-  //Serial.println("");
-  //Serial.println("");
+  //XBee.println("");
+  //XBee.println("");
   //Setup the sensor gain and integration time.
   setupSensor();
   //XBee
@@ -168,8 +172,9 @@ void setup()
   digitalWrite(led, HIGH);   // turn the LED on (HIGH is the voltage level)
 
   while (XBee.available() <= 0) {
-   //Serial.println("waiting"); 
+   //XBee.println("waiting"); 
   }
+  XBee.println("Xbee Ready!");
   
 //Wait for rocket number to be sent
   rocketNumber = (char) XBee.read();
@@ -188,7 +193,9 @@ void loop()
   unsigned long timeGPS = millis();
   while (millis() - timeGPS < 5) {
   if (Serial1.available()) {
+    Serial1.println("In while (millis() - timeGPS < 5) { while loop");
     char c = Serial1.read();
+    Serial1.println("Received char: " + c);
     if (gps.encode(c)) {
       break;
       }
@@ -196,10 +203,10 @@ void loop()
   }
   
   char testChar = 'z';
-  if (XBee.available() > 0) {
-    testChar = (char) Serial.read();
-    XBee.println(testChar);
-
+  if (XBee.available()){// > 0) {
+    testChar = (char) XBee.read();
+    //Serial1.println(testChar);
+    XBee.println("Received char: " + c);
   }
 
   if (millis() - noteDuration >= 1000){
@@ -211,6 +218,11 @@ void loop()
     startBuzzer = false;
   }
 
+  // if teensey receives code "a," reboot.
+  if(testChar == 'a') {
+    WRITE_RESTART(0x5FA0004);
+  }
+
   if (testChar == 'b') {
     if (startBuzzer == true) startBuzzer = false;
     else if (startBuzzer == false) startBuzzer = true;    
@@ -219,20 +231,20 @@ void loop()
    if (!startRecording && testChar == 'r') {
     
    if (!SD.begin(BUILTIN_SDCARD)) {
-      Serial.println("initialization failed!");
+      XBee.println("initialization failed!");
     }
     tone(6, 5000, 1000);
     noteDuration = millis();
  
   //Stop tone on buzzerPin
-    Serial.println("initialization done.");
+    XBee.println("initialization done.");
     startRecording = true;
    }
 
    if (testChar == 's') {
     if (startTransmitting == true) startTransmitting = false;
     else if (startTransmitting == false) startTransmitting = true;
-    Serial.println(startTransmitting);
+    XBee.println(startTransmitting);
     tone(6, 500, 1000);
     noteDuration = millis();
    }
@@ -292,7 +304,7 @@ void loop()
   message += (String)(millis()/1000.0) + "#&";
 
   // print message to serial on computer
-  //Serial.println(message);
+  //XBee.println(message);
 
 
   // Write to SD card if we're recording
@@ -303,14 +315,14 @@ void loop()
       myFile.println(message);
       myFile.close();
     } else {
-      Serial.println("SD card error");
+      XBee.println("SD card error");
     }
   }
     
     // XBee code
     char charArray[128];
     message.toCharArray(charArray, message.length() + 1);
-    //Serial.println(millis() - transmissionTime);
+    //XBee.println(millis() - transmissionTime);
     if (startTransmitting && (millis() - transmissionTime >= 150)) {
       XBee.print(charArray);
       transmissionTime = millis();
