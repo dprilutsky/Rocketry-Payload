@@ -189,7 +189,7 @@ void setup()
   if (SD.exists("example.txt")) {
     SD.remove(fileName);
   }
-
+  XBee.println("Launch " + rocketNumber);
   
   tone(6, 1109, 1000);
   noteDuration = millis();
@@ -225,20 +225,25 @@ void loop()
   }
 
   if (startBuzzer) {
-    tone(6,5000,1000000000);
-    startBuzzer = false;
+    tone(6,5000,100000);
+    noteDuration = 10000000000000000000000000000000000;
+    //startBuzzer = false;
   }
 
   // if teensey receives code "a," reboot.
   if(testChar == 'a') {
+    XBee.println("restarting . . .");
     WRITE_RESTART(0x5FA0004);
   }
 
   if (testChar == 'b') {
-    if (startBuzzer == true) startBuzzer = false;
-    else if (startBuzzer == false) startBuzzer = true;    
+    XBee.println("buzzing");
+    startBuzzer = true;
   }
-
+  if (testChar == 'B') {
+    XBee.println("stopped buzzing");
+    startBuzzer = false;
+  }
 
 
    if (!startRecording && testChar == 'r') {
@@ -250,25 +255,32 @@ void loop()
     noteDuration = millis();
  
   //Stop tone on buzzerPin
-    XBee.println("initialization done.");
+    XBee.println("recording");
     startRecording = true;
    }
 
    if (testChar == 'L') {
+      XBee.println("Current SD Files:");
       if (!SD.begin(BUILTIN_SDCARD)) {
         Serial.println("initalization failed!");
       }
       root = SD.open("/");
-
+      tone(6, 5000, 1000);
+      noteDuration = millis();
       printDirectory(root, 0);
    }
 
    if (testChar == 'T') {
+    tone(6, 5000, 1000);
+    noteDuration = millis();
     while (XBee.available() <= 0) {
      //XBee.println("waiting"); 
     }    
+        tone(6, 5000, 1000);
+    noteDuration = millis();
     //Wait for rocket number to be sent
     char requestedNumber = (char) XBee.read();
+    XBee.println("Incoming file " + requestedNumber);
     String requestedFile = "launch" + (String) requestedNumber + ".txt";
     char requestedFileName[50];
     requestedFile.toCharArray(requestedFileName, requestedFile.length()+1);
@@ -285,12 +297,20 @@ void loop()
     }
     dataFile.close();
     }
+        tone(6, 5000, 1000);
+    noteDuration = millis();
    }
 
    if (testChar == 's') {
-    if (startTransmitting == true) startTransmitting = false;
-    else if (startTransmitting == false) startTransmitting = true;
-    XBee.println(startTransmitting);
+    if (startTransmitting == true) {
+      startTransmitting = false;
+      XBee.println("transmission stopping");
+    }
+    else if (startTransmitting == false){
+      startTransmitting = true;
+          XBee.println("transmission starting");
+
+    }
     tone(6, 500, 1000);
     noteDuration = millis();
    }
@@ -303,6 +323,7 @@ void loop()
     startRecording = false;
     tone(6, 500, 1000);
     noteDuration = millis();
+    XBee.println("SD paused");
     //exit(1);
   }
 
@@ -539,6 +560,7 @@ void printDirectory(File dir, int numTabs) {
       break;
     }
     XBee.print(entry.name());
+    XBee.print('_');
     entry.close();
   }
 }
