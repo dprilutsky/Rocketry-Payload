@@ -34,6 +34,7 @@ const int fSH = 740;
 const int gH = 784;
 const int gSH = 830;
 const int aH = 880;
+const int gPS_PERCISION = 5;
  
 const int buzzerPin = 6;
 
@@ -59,7 +60,6 @@ bool startRecording = false;
 float barOffset = 0.0;
 long barometerTime = 0; //time since last barometer transmission
 String gpsData(TinyGPS &gps1);
-String printFloat(double f, int digits = 2);
 bool startTransmitting = true;
 float xOffset = 0.0;
 bool startBuzzer = false;
@@ -415,14 +415,13 @@ String gpsData(TinyGPS &gps)
 {
   String data = "";
   long lat, lon;
-  float flat, flon;
   unsigned long age, date, time, chars;
   int year;
   byte month, day, hour, minute, second, hundredths;
   unsigned short sentences, failed;
   gps.get_position(&lat, &lon, &age);
 
-  data += (String)(gps.f_altitude()) + "#,#" + (String)(gps.f_speed_mps()) + "#,#" + (String)(lat/10000000.0) + "#,#" + (String)(lon/10000000.0) + "#,#";
+  data += (String)(gps.f_altitude()) + "#,#" + (String)(gps.f_speed_mps()) + "#,#" + (String(lat/1000000.0), gPS_PERCISION) + "#,#" + (String(lon/1000000.0), gPS_PERCISION) + "#,#";
 
   //data += (String)(1) + "#,#" + printFloat(1) + "#,#" + (String)1 + "#,#" + (String)1 + "#,#";
   
@@ -442,38 +441,6 @@ void beep(int note, int duration)
  
   delay(50);
  
-}
-
-String printFloat(double number, int digits)
-{
-  String toReturn = "";
-  // Handle negative numbers
-  if (number < 0.0) {
-     toReturn = "-";
-     number = -number;
-  }
-  // Round correctly so that print(1.999, 2) prints as "2.00"
-  double rounding = 0.5;
-  for (uint8_t i=0; i<digits; ++i)
-    rounding /= 10.0;
-  
-  number += rounding;
-  // Extract the integer part of the number and print it
-  unsigned long int_part = (unsigned long)number;
-  double remainder = number - (double)int_part;
-  toReturn += (String)int_part;
-  // Print the decimal point, but only if there are digits beyond
-  if (digits > 0)
-    toReturn += ".";
-  // Extract digits from the remainder one at a time
-  while (digits-- > 0) {
-    remainder *= 10.0;
-    int toPrint = int(remainder);
-    toReturn += (String)toPrint;
-    remainder -= toPrint;
-  }
-
-  return toReturn;
 }
 
 void firstSection()
