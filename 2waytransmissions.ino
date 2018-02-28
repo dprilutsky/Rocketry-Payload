@@ -35,6 +35,7 @@ const int gH = 784;
 const int gSH = 830;
 const int aH = 880;
 const int gPS_PERCISION = 5;
+const float tct = 0.5;
  
 const int buzzerPin = 6;
 
@@ -47,7 +48,7 @@ TinyGPS gps;
 //Create simple AHRS algorithm using the LSMD9S0 instance's accelerometer and magnetometer
 Adafruit_Simple_AHRS ahrs(&lsm.getAccel(), &lsm.getMag());
 //Data array
-float data[13];
+float data[17]; // 14: x-vel, 15: y-vel, 16: z-vel, 17: y-pos
 //SD Card
 File myFile;  
 char fileName[50];
@@ -63,6 +64,9 @@ String gpsData(TinyGPS &gps1);
 bool startTransmitting = true;
 float xOffset = 0.0;
 bool startBuzzer = false;
+
+float timeNew = -1;
+float timeOld = -1;
 
 char recordingOutput = 'p';
 char transmittingOutput = 's';
@@ -362,6 +366,20 @@ void loop()
   data[2] = data[2] - 9.81*cos(data[7]*M_PI/180)*cos(data[6]*M_PI/180);
   data[9] = temp.temperature;
  // data[10] = bar.getPressure();
+
+ // An attempt at canceling drift with the complementary filter thing
+ // TODO: figure out the average drift per second, which will affect the time constant, tct, which is now 0.5;
+ timeNew = millis() / 1000.0;
+ if (timeOld != -1) {
+  float dt = timeNew - timeOld;
+  float timeConstant = tct / (tct + dt);
+  data[14] = (timeConstant * (data[14] + data[0] * dt)) + ((1.0 - timeConstant) * data[0]);
+  data[15] = (timeConstant * (data[15] + data[1] * dt)) + ((1.0 - timeConstant) * data[1]);
+  data[16] = (timeConstant * (data[16] + data[2] * dt)) + ((1.0 - timeConstant) * data[2]);
+  data[17] = (timeConstant * (data[17] + data[15] * dt)) + ((1.0 - timeConstant) * data[15]);
+ }
+ timeOld = timeNew;
+ 
  
  //barometer code
  if (millis() - barometerTime >= 1000.0) {
@@ -385,7 +403,7 @@ char buzzerOutput;
   message += (String)(millis()/1000.0) + "#&";
 
   // print message to serial on computer
-  //XBee.println(message);
+  XBee.println(String(data[14])); // Test Complememntary Filter
 
 
   // Write to SD card if we're recording
