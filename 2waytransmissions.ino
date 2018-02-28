@@ -64,6 +64,10 @@ bool startTransmitting = true;
 float xOffset = 0.0;
 bool startBuzzer = false;
 
+char recordingOutput = 'p';
+char transmittingOutput = 's';
+char buzzerOutput = 'f';
+
 void buzzerSetup();
 
 /*
@@ -238,9 +242,11 @@ void loop()
 
   if (testChar == 'b') {
     XBee.println("buzzing");
+    buzzerOutput = 'b';
     startBuzzer = true;
   }
   if (testChar == 'B') {
+    buzzerOutput = 'f';
     XBee.println("stopped buzzing");
     startBuzzer = false;
   }
@@ -251,6 +257,7 @@ void loop()
    if (!SD.begin(BUILTIN_SDCARD)) {
       Serial.println("initialization failed!");
     }
+    recordingOutput = 'r';
     tone(6, 5000, 1000);
     noteDuration = millis();
  
@@ -304,10 +311,12 @@ void loop()
    if (testChar == 's') {
     if (startTransmitting == true) {
       startTransmitting = false;
+      transmittingOutput = 's';
       XBee.println("transmission stopping");
     }
     else if (startTransmitting == false){
       startTransmitting = true;
+      transmittingOutput = 't';
           XBee.println("transmission starting");
 
     }
@@ -321,6 +330,7 @@ void loop()
   //pause recording
   if (startRecording && testChar == 'p'){
     startRecording = false;
+    recordingOutput = 'p';
     tone(6, 500, 1000);
     noteDuration = millis();
     XBee.println("SD paused");
@@ -361,9 +371,13 @@ void loop()
   barometerTime = millis();
  }
   //data[12] = bar.getTemperature();
-  
+  char rocketNumber;
+char recordingOutput;
+char transmittingOutput;
+char buzzerOutput;
+
   // Compile string for sending/recording
-  String message = "*#" + (String)data[0] + "#,#" + (String)data[1] + "#,#" + (String)data[2] + "#,#" + (String)data[6] + "#,#" + (String)data[7] + "#,#" + (String)data[8] + "#,#" + (String)data[11] + "#,#" ;
+  String message = "*#" + (String) rocketNumber + (String) recordingOutput + (String) transmittingOutput + (String) buzzerOutput + (String)data[0] + "#,#" + (String)data[1] + "#,#" + (String)data[2] + "#,#" + (String)data[6] + "#,#" + (String)data[7] + "#,#" + (String)data[8] + "#,#" + (String)data[11] + "#,#" ;
   //String message = "*#" + (String)data[0] + "#,#" + (String)data[1] + "#,#" + (String)data[2] + "#,#" + (String)1 + "#,#" + (String)1 + "#,#" + (String)1 + "#,#" + (String)data[11] + "#,#" ;
  
   message += gpsData(gps);
