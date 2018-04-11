@@ -34,10 +34,11 @@ const int fSH = 740;
 const int gH = 784;
 const int gSH = 830;
 const int aH = 880;
-const int gPS_PERCISION = 5;
-const float tct = 0.5;
  
 const int buzzerPin = 6;
+
+const float tct = 0.5;
+
 
 File root;
 
@@ -49,6 +50,7 @@ TinyGPS gps;
 Adafruit_Simple_AHRS ahrs(&lsm.getAccel(), &lsm.getMag());
 //Data array
 float data[17]; // 14: x-vel, 15: y-vel, 16: z-vel, 17: y-pos
+
 //SD Card
 File myFile;  
 char fileName[50];
@@ -69,10 +71,8 @@ float timeNew = -1;
 float timeOld = -1;
 
 char recordingOutput = 'p';
-char transmittingOutput = 's';
+char transmittingOutput = 't';
 char buzzerOutput = 'f';
-
-void buzzerSetup();
 
 /*
  * Data Key:
@@ -123,7 +123,9 @@ void setupSensor()
 }
 void setup() 
 {
-
+data[14] = 0;
+data[15] = 0;
+data[16] = 0;
 
   XBee.begin(9600);
   Serial1.begin(9600);
@@ -212,9 +214,7 @@ void loop()
   unsigned long timeGPS = millis();
   while (millis() - timeGPS < 5) {
   if (Serial1.available()) {
-    Serial1.println("In while (millis() - timeGPS < 5) { while loop");
     char c = Serial1.read();
-    Serial1.println("Received char: " + c);
     if (gps.encode(c)) {
       break;
       }
@@ -367,8 +367,6 @@ void loop()
   data[9] = temp.temperature;
  // data[10] = bar.getPressure();
 
- // An attempt at canceling drift with the complementary filter thing
- // TODO: figure out the average drift per second, which will affect the time constant, tct, which is now 0.5;
  timeNew = millis() / 1000.0;
  if (timeOld != -1) {
   float dt = timeNew - timeOld;
@@ -376,10 +374,8 @@ void loop()
   data[14] = (timeConstant * (data[14] + data[0] * dt)) + ((1.0 - timeConstant) * data[0]);
   data[15] = (timeConstant * (data[15] + data[1] * dt)) + ((1.0 - timeConstant) * data[1]);
   data[16] = (timeConstant * (data[16] + data[2] * dt)) + ((1.0 - timeConstant) * data[2]);
-  data[17] = (timeConstant * (data[17] + data[15] * dt)) + ((1.0 - timeConstant) * data[15]);
  }
  timeOld = timeNew;
- 
  
  //barometer code
  if (millis() - barometerTime >= 1000.0) {
@@ -389,21 +385,20 @@ void loop()
   barometerTime = millis();
  }
   //data[12] = bar.getTemperature();
-  char rocketNumber;
-char recordingOutput;
-char transmittingOutput;
-char buzzerOutput;
+
 
   // Compile string for sending/recording
-  String message = "*#" + (String) rocketNumber + (String) recordingOutput + (String) transmittingOutput + (String) buzzerOutput + (String)data[0] + "#,#" + (String)data[1] + "#,#" + (String)data[2] + "#,#" + (String)data[6] + "#,#" + (String)data[7] + "#,#" + (String)data[8] + "#,#" + (String)data[11] + "#,#" ;
+  String message = "*#" + (String) rocketNumber + (String) recordingOutput + (String) transmittingOutput + (String) buzzerOutput + "#,#" + (String)data[0] + "#,#" + (String)data[1] + "#,#" + (String)data[2] + "#,#" + (String)data[6] + "#,#" + (String)data[7] + "#,#" + (String)data[8] + "#,#" + (String)data[11] + "#,#" ;
   //String message = "*#" + (String)data[0] + "#,#" + (String)data[1] + "#,#" + (String)data[2] + "#,#" + (String)1 + "#,#" + (String)1 + "#,#" + (String)1 + "#,#" + (String)data[11] + "#,#" ;
  
   message += gpsData(gps);
 
+  message += (String)data[14] + "#,#" + (String)data[15] + "#,#" + (String)data[16] + "#,#";
+
   message += (String)(millis()/1000.0) + "#&";
 
   // print message to serial on computer
-  XBee.println(String(data[14])); // Test Complememntary Filter
+  Serial.println(message);
 
 
   // Write to SD card if we're recording
@@ -419,7 +414,7 @@ char buzzerOutput;
   }
     
     // XBee code
-    char charArray[128];
+    char charArray[256];
     message.toCharArray(charArray, message.length() + 1);
     //XBee.println(millis() - transmissionTime);
     if (startTransmitting && (millis() - transmissionTime >= 150)) {
@@ -433,15 +428,14 @@ String gpsData(TinyGPS &gps)
 {
   String data = "";
   long lat, lon;
+  float flat, flon;
   unsigned long age, date, time, chars;
   int year;
   byte month, day, hour, minute, second, hundredths;
   unsigned short sentences, failed;
   gps.get_position(&lat, &lon, &age);
 
-  data += (String)(gps.f_altitude()) + "#,#" + (String)(gps.f_speed_mps()) + "#,#" + (String(lat/1000000.0), gPS_PERCISION) + "#,#" + (String(lon/1000000.0), gPS_PERCISION) + "#,#";
-
-  //data += (String)(1) + "#,#" + printFloat(1) + "#,#" + (String)1 + "#,#" + (String)1 + "#,#";
+  data += (String)(gps.f_altitude()) + "#,#" + (String)(gps.f_speed_mps()) + "#,#" + String(lat/10000000.0, 5) + "#,#" + String(lon/10000000.0, 5) + "#,#";
   
   return data;
 }
