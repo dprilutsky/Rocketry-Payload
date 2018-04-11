@@ -126,6 +126,7 @@ void setup()
 data[14] = 0;
 data[15] = 0;
 data[16] = 0;
+data[17] = 0;
 
   XBee.begin(9600);
   Serial1.begin(9600);
@@ -153,20 +154,26 @@ data[16] = 0;
   pinMode(led, OUTPUT);
 
 //high pitch
-  beep(3671, 150);
-  beep(3671, 300);
-  beep(3087, 300);
-  beep(3671, 150);
-  beep(3671, 300);
-  beep(3087, 300);
-  beep(3671, 150);
-  beep(4365, 300);
-  beep(4120, 300);
-  beep(4365, 70);
-  beep(4120, 70);
-  beep(3671, 150);
-  beep(3087, 500);
-
+//  beep(3671, 150);
+//  beep(3671, 300);
+//  beep(3087, 300);
+//  beep(3671, 150);
+//  beep(3671, 300);
+//  beep(3087, 300);
+//  beep(3671, 150);
+//  beep(4365, 300);
+//  beep(4120, 300);
+//  beep(4365, 70);
+//  beep(4120, 70);
+//  beep(3671, 150);
+//  beep(3087, 500);
+  
+beep(349.23*2, 500);
+ beep(523.25*2, 250);
+ beep(493.88*2 , 250);
+ beep(523.25*2, 125);
+ beep(493.88*2, 125);
+ beep(523.25*2 , 375);
 //low pitch
 //  beep(367, 150);
 //  beep(367, 300);
@@ -374,6 +381,7 @@ void loop()
   data[14] = (timeConstant * (data[14] + data[0] * dt)) + ((1.0 - timeConstant) * data[0]);
   data[15] = (timeConstant * (data[15] + data[1] * dt)) + ((1.0 - timeConstant) * data[1]);
   data[16] = (timeConstant * (data[16] + data[2] * dt)) + ((1.0 - timeConstant) * data[2]);
+  data[17] = (dt * data[15]) + data[17];
  }
  timeOld = timeNew;
  
@@ -393,9 +401,12 @@ void loop()
  
   message += gpsData(gps);
 
-  message += (String)data[14] + "#,#" + (String)data[15] + "#,#" + (String)data[16] + "#,#";
+///////////////////
+  //message = "x " + (String)data[14] + "#,# y " + (String)data[15] + "#,# z " + (String)data[16] + "#,#";
 
   message += (String)(millis()/1000.0) + "#&";
+
+  //Serial.println((String)data[17]);
 
   // print message to serial on computer
   Serial.println(message);
