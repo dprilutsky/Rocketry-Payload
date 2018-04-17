@@ -37,7 +37,12 @@ const int aH = 880;
  
 const int buzzerPin = 6;
 
+const float tct = 0.5;
+
+
 File root;
+
+float oldAlt;
 
 // Use I2C, ID #1000
 Adafruit_LSM9DS0 lsm = Adafruit_LSM9DS0(1000); 
@@ -46,7 +51,8 @@ TinyGPS gps;
 //Create simple AHRS algorithm using the LSMD9S0 instance's accelerometer and magnetometer
 Adafruit_Simple_AHRS ahrs(&lsm.getAccel(), &lsm.getMag());
 //Data array
-float data[13];
+float data[17]; // 14: x-vel, 15: y-vel, 16: z-vel, 17: y-pos
+
 //SD Card
 File myFile;  
 char fileName[50];
@@ -59,10 +65,12 @@ bool startRecording = false;
 float barOffset = 0.0;
 long barometerTime = 0; //time since last barometer transmission
 String gpsData(TinyGPS &gps1);
-String printFloat(double f, int digits = 2);
 bool startTransmitting = true;
 float xOffset = 0.0;
 bool startBuzzer = false;
+
+float timeNew = -1;
+float timeOld = -1;
 
 char recordingOutput = 'p';
 char transmittingOutput = 't';
@@ -117,7 +125,11 @@ void setupSensor()
 }
 void setup() 
 {
-
+  oldAlt = 0;
+data[14] = 0;
+data[15] = 0;
+data[16] = 0;
+data[17] = 0;
 
   XBee.begin(9600);
   Serial1.begin(9600);
@@ -145,20 +157,26 @@ void setup()
   pinMode(led, OUTPUT);
 
 //high pitch
-  beep(3671, 150);
-  beep(3671, 300);
-  beep(3087, 300);
-  beep(3671, 150);
-  beep(3671, 300);
-  beep(3087, 300);
-  beep(3671, 150);
-  beep(4365, 300);
-  beep(4120, 300);
-  beep(4365, 70);
-  beep(4120, 70);
-  beep(3671, 150);
-  beep(3087, 500);
-
+//  beep(3671, 150);
+//  beep(3671, 300);
+//  beep(3087, 300);
+//  beep(3671, 150);
+//  beep(3671, 300);
+//  beep(3087, 300);
+//  beep(3671, 150);
+//  beep(4365, 300);
+//  beep(4120, 300);
+//  beep(4365, 70);
+//  beep(4120, 70);
+//  beep(3671, 150);
+//  beep(3087, 500);
+  
+beep(349.23*2, 500);
+ beep(523.25*2, 250);
+ beep(493.88*2 , 250);
+ beep(523.25*2, 125);
+ beep(493.88*2, 125);
+ beep(523.25*2 , 375);
 //low pitch
 //  beep(367, 150);
 //  beep(367, 300);
@@ -206,9 +224,7 @@ void loop()
   unsigned long timeGPS = millis();
   while (millis() - timeGPS < 5) {
   if (Serial1.available()) {
-    Serial1.println("In while (millis() - timeGPS < 5) { while loop");
     char c = Serial1.read();
-    Serial1.println("Received char: " + c);
     if (gps.encode(c)) {
       break;
       }
@@ -360,14 +376,30 @@ void loop()
   data[2] = data[2] - 9.81*cos(data[7]*M_PI/180)*cos(data[6]*M_PI/180);
   data[9] = temp.temperature;
  // data[10] = bar.getPressure();
- 
- //barometer code
+
+  //barometer code
  if (millis() - barometerTime >= 1000.0) {
   data[11] = bar.getAltitude();
   if (barOffset == 0.0) barOffset = -data[11];
   data[11] += barOffset;
   barometerTime = millis();
  }
+
+ timeNew = millis() / 1000.0;
+ if (timeOld != -1) {
+ 
+  float dt = timeNew - timeOld;
+  float timeConstant = tct / (tct + dt);
+  data[14] = (timeConstant * (data[14] + data[0] * dt)) + ((1.0 - timeConstant) * data[0]);
+  data[15] = (timeConstant * (data[15] + data[1] * dt)) + ((1.0 - timeConstant) * data[1]);
+  data[16] = (timeConstant * (data[16] + data[2] * dt)) + ((1.0 - timeConstant) * data[2]);
+  //data[17] = (dt * data[15]) + data[17];
+  data[16] = (data[11] - oldAlt)/dt;
+  oldAlt = data[11];
+ }
+ timeOld = timeNew;
+ 
+
   //data[12] = bar.getTemperature();
 
 
@@ -377,7 +409,12 @@ void loop()
  
   message += gpsData(gps);
 
+///////////////////
+  message += (String)data[14] + "#,#" + (String)data[15] + "#,#" + (String)data[16] + "#,#";
+
   message += (String)(millis()/1000.0) + "#&";
+
+  //Serial.println((String)data[17]);
 
   // print message to serial on computer
   Serial.println(message);
@@ -396,7 +433,7 @@ void loop()
   }
     
     // XBee code
-    char charArray[128];
+    char charArray[256];
     message.toCharArray(charArray, message.length() + 1);
     //XBee.println(millis() - transmissionTime);
     if (startTransmitting && (millis() - transmissionTime >= 150)) {
@@ -418,8 +455,6 @@ String gpsData(TinyGPS &gps)
   gps.get_position(&lat, &lon, &age);
 
   data += (String)(gps.f_altitude()) + "#,#" + (String)(gps.f_speed_mps()) + "#,#" + String(lat/10000000.0, 5) + "#,#" + String(lon/10000000.0, 5) + "#,#";
-
-  //data += (String)(1) + "#,#" + printFloat(1) + "#,#" + (String)1 + "#,#" + (String)1 + "#,#";
   
   return data;
 }
@@ -437,38 +472,6 @@ void beep(int note, int duration)
  
   delay(50);
  
-}
-
-String printFloat(double number, int digits)
-{
-  String toReturn = "";
-  // Handle negative numbers
-  if (number < 0.0) {
-     toReturn = "-";
-     number = -number;
-  }
-  // Round correctly so that print(1.999, 2) prints as "2.00"
-  double rounding = 0.5;
-  for (uint8_t i=0; i<digits; ++i)
-    rounding /= 10.0;
-  
-  number += rounding;
-  // Extract the integer part of the number and print it
-  unsigned long int_part = (unsigned long)number;
-  double remainder = number - (double)int_part;
-  toReturn += (String)int_part;
-  // Print the decimal point, but only if there are digits beyond
-  if (digits > 0)
-    toReturn += ".";
-  // Extract digits from the remainder one at a time
-  while (digits-- > 0) {
-    remainder *= 10.0;
-    int toPrint = int(remainder);
-    toReturn += (String)toPrint;
-    remainder -= toPrint;
-  }
-
-  return toReturn;
 }
 
 void firstSection()
